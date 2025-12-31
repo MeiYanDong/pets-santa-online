@@ -280,7 +280,8 @@ const PetsSantaApp: React.FC = () => {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.error || 'Failed to create checkout session');
+        const errorMsg = data.details ? `${data.error}: ${data.details}` : data.error;
+        alert(errorMsg || 'Failed to create checkout session');
       }
     } catch (error) {
       console.error('Checkout error:', error);

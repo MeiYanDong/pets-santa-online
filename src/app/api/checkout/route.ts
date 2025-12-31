@@ -32,22 +32,29 @@ export async function POST() {
       },
     });
 
-    // Create pending payment record
-    await db.insert(payment).values({
-      id: crypto.randomUUID(),
-      userId: session.user.id,
-      stripeSessionId: checkoutSession.id,
-      amount: 1000, // $10.00 in cents
-      currency: "usd",
-      status: "pending",
-      creditsAdded: 0,
-    });
+    // Create pending payment record (non-blocking)
+    try {
+      await db.insert(payment).values({
+        id: crypto.randomUUID(),
+        userId: session.user.id,
+        stripeSessionId: checkoutSession.id,
+        amount: 1000, // $10.00 in cents
+        currency: "usd",
+        status: "pending",
+        creditsAdded: 0,
+      });
+    } catch (dbError) {
+      // Log but don't fail the checkout - webhook will handle the payment record
+      console.error("Failed to create payment record:", dbError);
+    }
 
     return NextResponse.json({ url: checkoutSession.url });
   } catch (error) {
     console.error("Checkout error:", error);
+    // Return more detailed error in development
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      { error: "Failed to create checkout session", details: errorMessage },
       { status: 500 }
     );
   }
