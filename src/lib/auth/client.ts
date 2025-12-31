@@ -10,3 +10,12 @@ export const { signIn, signUp, signOut, useSession, getSession } =
     },
     plugins: [usernameClient(), nextCookies()],
   });
+
+// Alias for compatibility with the pets-santa components
+export const authClient = {
+  signIn,
+  signUp,
+  signOut,
+  useSession,
+  getSession,
+};

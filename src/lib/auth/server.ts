@@ -5,6 +5,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { restrictedUsernames } from "./usernames";
 
 export const auth = betterAuth({
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
@@ -17,6 +18,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    },
+  },
   user: {
     additionalFields: {
       role: {
@@ -27,7 +34,7 @@ export const auth = betterAuth({
       },
       gender: {
         type: "boolean",
-        required: true,
+        required: false,
         input: true,
       },
     },
