@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Link from 'next/link';
 import { Page, User } from '@/types';
 
 interface LayoutProps {
@@ -88,9 +89,12 @@ const Layout: React.FC<LayoutProps> = ({
                     >
                       My Creations
                     </button>
-                    <button className="w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+                    <Link
+                      href="/billing"
+                      className="block w-full px-4 py-2 text-left text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-red-600 dark:hover:text-red-400"
+                    >
                       Billing
-                    </button>
+                    </Link>
                     <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
                     <button
                       onClick={onLogout}

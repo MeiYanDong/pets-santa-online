@@ -118,36 +118,15 @@ const CTASection = ({ onScrollToTop, onGoPricing }: { onScrollToTop: () => void,
   </section>
 );
 
-const PricingPage = ({ onPlanSelect }: { onPlanSelect: (plan: string) => void }) => {
-  const plans = [
-    {
-      name: 'Trial Pack',
-      price: '$0',
-      sub: '',
-      desc: 'Try it out with a few free portraits.',
-      features: ['2 Holiday Credits', 'Standard quality downloads', 'Limited styles', 'No credit card required'],
-      button: 'Claim Free Credits',
-      primary: false
-    },
-    {
-      name: 'Holiday Pack',
-      price: '$9.99',
-      sub: '',
-      desc: 'Perfect for sharing with family and friends.',
-      features: ['10 Holiday Credits', 'High-quality downloads', 'All Christmas styles', 'Priority generation', 'No expiration'],
-      button: 'Buy 10 Credits',
-      primary: true
-    },
-    {
-      name: 'Studio Pack',
-      price: '$24.99',
-      sub: '',
-      desc: 'For pet lovers who want all the options.',
-      features: ['30 Holiday Credits', 'Bulk generation', 'Commercial-friendly usage', '24/7 Priority Support', 'No expiration'],
-      button: 'Buy 30 Credits',
-      primary: false
-    }
-  ];
+const PricingPage = ({ onPlanSelect, isLoading }: { onPlanSelect: (plan: string) => void; isLoading?: boolean }) => {
+  const plan = {
+    name: 'Holiday Pack',
+    price: '$10',
+    sub: '',
+    desc: 'Perfect for sharing with family and friends.',
+    features: ['200 Holiday Credits', 'High-quality downloads', 'All Christmas styles', 'Priority generation', 'No expiration'],
+    button: 'Buy 200 Credits',
+  };
 
   return (
     <div className="py-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
@@ -156,31 +135,33 @@ const PricingPage = ({ onPlanSelect }: { onPlanSelect: (plan: string) => void })
           <h1 className="text-6xl font-bold text-slate-900 dark:text-white mb-6 festive-font">Pricing</h1>
           <p className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">One-time purchase credit packs. No subscriptions, just holiday fun.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 items-stretch">
-          {plans.map((plan, i) => (
-            <div key={i} className={`relative bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] shadow-xl border flex flex-col h-full transform transition-all hover:shadow-2xl ${plan.primary ? 'border-red-500 dark:border-red-600 scale-105 z-10' : 'border-slate-100 dark:border-slate-800'}`}>
-              {plan.primary && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-6 py-2 rounded-full shadow-xl">Best Value</div>}
-              <div className="mb-10">
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{plan.desc}</p>
-              </div>
-              <div className="mb-10">
-                <span className="text-6xl font-bold text-slate-900 dark:text-white">{plan.price}</span>
-                <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">One-time payment</div>
-              </div>
-              <ul className="space-y-5 mb-12 flex-grow">
-                {plan.features.map((f, j) => (
-                  <li key={j} className="flex items-center gap-4 text-slate-600 dark:text-slate-400 font-medium">
-                    <span className="w-6 h-6 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs">✓</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <button onClick={() => onPlanSelect(plan.name)} className={`w-full py-5 rounded-2xl font-bold text-lg transition-all ${plan.primary ? 'bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 dark:shadow-red-900/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                {plan.button}
-              </button>
+        <div className="flex justify-center">
+          <div className="relative bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] shadow-xl border border-red-500 dark:border-red-600 flex flex-col max-w-md w-full transform transition-all hover:shadow-2xl">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-6 py-2 rounded-full shadow-xl">Best Value</div>
+            <div className="mb-10">
+              <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">{plan.desc}</p>
             </div>
-          ))}
+            <div className="mb-10">
+              <span className="text-6xl font-bold text-slate-900 dark:text-white">{plan.price}</span>
+              <div className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">One-time payment</div>
+            </div>
+            <ul className="space-y-5 mb-12 flex-grow">
+              {plan.features.map((f, j) => (
+                <li key={j} className="flex items-center gap-4 text-slate-600 dark:text-slate-400 font-medium">
+                  <span className="w-6 h-6 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center text-xs">✓</span>
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => onPlanSelect(plan.name)}
+              disabled={isLoading}
+              className="w-full py-5 rounded-2xl font-bold text-lg transition-all bg-red-600 text-white hover:bg-red-700 shadow-xl shadow-red-200 dark:shadow-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? 'Processing...' : plan.button}
+            </button>
+          </div>
         </div>
         <div className="mt-20 text-center text-slate-400 text-sm italic">
           Need custom volume? <button className="text-red-600 dark:text-red-400 font-bold hover:underline">Contact us</button> for bulk rates.
@@ -232,6 +213,7 @@ const PetsSantaApp: React.FC = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [creations, setCreations] = useState<Creation[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   // Use Better Auth session
   const { data: session, isPending } = useSession();
@@ -280,6 +262,34 @@ const PetsSantaApp: React.FC = () => {
     localStorage.setItem('pets_santa_creations', JSON.stringify(updated));
   };
 
+  const handleCheckout = async () => {
+    if (!mappedUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+
+    setIsCheckoutLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Failed to create checkout session');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to initiate checkout');
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  };
+
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   if (isPending) {
@@ -311,7 +321,7 @@ const PetsSantaApp: React.FC = () => {
           <CTASection onScrollToTop={scrollToTop} onGoPricing={() => setCurrentPage('pricing')} />
         </>
       )}
-      {currentPage === 'pricing' && <PricingPage onPlanSelect={(plan) => mappedUser ? alert(`Processing purchase for ${plan}...`) : setIsAuthModalOpen(true)} />}
+      {currentPage === 'pricing' && <PricingPage onPlanSelect={handleCheckout} isLoading={isCheckoutLoading} />}
       {currentPage === 'my-creations' && <MyCreationsPage creations={creations} />}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </Layout>

@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { STYLE_TEMPLATES } from '@/constants';
 import { StyleTemplate, User } from '@/types';
 import { generatePetPortrait } from '@/services/gemini-service';
+import { uploadFile, uploadBase64Image } from '@/services/blob-service';
 
 interface HeroProps {
   onGenerated: (original: string, generated: string, style: string) => void;
@@ -14,13 +15,16 @@ interface HeroProps {
 const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [originalBlobUrl, setOriginalBlobUrl] = useState<string | null>(null);
   const [selectedStyle, setSelectedStyle] = useState<StyleTemplate>(STYLE_TEMPLATES[0]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [resultBlobUrl, setResultBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
       if (selected.size > 10 * 1024 * 1024) {
@@ -29,11 +33,25 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
       }
       setFile(selected);
       setError(null);
+      setIsUploading(true);
+
+      // Create local preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
       };
       reader.readAsDataURL(selected);
+
+      // Upload to Vercel Blob
+      try {
+        const blobUrl = await uploadFile(selected, 'original');
+        setOriginalBlobUrl(blobUrl);
+      } catch (err) {
+        console.error('Failed to upload original image:', err);
+        // Continue without blob URL - we can still use base64 for generation
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -46,12 +64,28 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
     setIsGenerating(true);
     setError(null);
     setResult(null);
+    setResultBlobUrl(null);
 
     try {
-      const generatedUrl = await generatePetPortrait(preview, selectedStyle.prompt);
-      if (generatedUrl) {
-        setResult(generatedUrl);
-        onGenerated(preview, generatedUrl, selectedStyle.label);
+      const generatedBase64 = await generatePetPortrait(preview, selectedStyle.prompt);
+      if (generatedBase64) {
+        setResult(generatedBase64);
+
+        // Upload generated image to Vercel Blob
+        try {
+          const generatedBlobUrl = await uploadBase64Image(generatedBase64, 'generated');
+          setResultBlobUrl(generatedBlobUrl);
+          // Use Blob URLs for storage if available, fallback to base64
+          onGenerated(
+            originalBlobUrl || preview,
+            generatedBlobUrl,
+            selectedStyle.label
+          );
+        } catch (uploadErr) {
+          console.error('Failed to upload generated image:', uploadErr);
+          // Fallback to base64 if upload fails
+          onGenerated(originalBlobUrl || preview, generatedBase64, selectedStyle.label);
+        }
       } else {
         setError("Generation failed. Please try again.");
       }
@@ -65,7 +99,9 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
   const reset = () => {
     setFile(null);
     setPreview(null);
+    setOriginalBlobUrl(null);
     setResult(null);
+    setResultBlobUrl(null);
     setError(null);
   };
 
@@ -74,9 +110,11 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
       onLogin();
       return;
     }
-    if (result) {
+    // Prefer Blob URL for download, fallback to base64
+    const downloadUrl = resultBlobUrl || result;
+    if (downloadUrl) {
       const link = document.createElement('a');
-      link.href = result;
+      link.href = downloadUrl;
       link.download = `christmas-pet-${Date.now()}.png`;
       document.body.appendChild(link);
       link.click();
@@ -140,14 +178,22 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={handleGenerate}
-                  disabled={isGenerating || !preview}
+                  disabled={isGenerating || isUploading || !preview}
                   className={`w-full py-4 rounded-full font-bold text-lg shadow-xl transition-all transform active:scale-95 flex items-center justify-center gap-2 ${
-                    isGenerating || !preview
+                    isGenerating || isUploading || !preview
                       ? 'bg-slate-300 dark:bg-slate-700 text-slate-500 dark:text-slate-500 cursor-not-allowed shadow-none'
                       : 'bg-red-600 dark:bg-red-600 text-white hover:bg-red-700 dark:hover:bg-red-500 hover:-translate-y-1'
                   }`}
                 >
-                  {isGenerating ? (
+                  {isUploading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Uploading...
+                    </span>
+                  ) : isGenerating ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
