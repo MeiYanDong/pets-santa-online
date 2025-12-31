@@ -8,15 +8,27 @@ import {
   publicRoutes,
 } from "./routes";
 
+// Public API routes that don't require authentication (e.g., webhooks)
+const publicApiRoutes = ["/api/webhook"];
+
 export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
   const session = getSessionCookie(request);
 
-  const isApiAuth = request.nextUrl.pathname.startsWith(apiAuthPrefix);
+  // Allow public API routes (webhooks, etc.) without authentication
+  const isPublicApiRoute = publicApiRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+  if (isPublicApiRoute) {
+    return NextResponse.next();
+  }
 
-  const isPublicRoute = publicRoutes.includes(request.nextUrl.pathname);
+  const isApiAuth = pathname.startsWith(apiAuthPrefix);
+
+  const isPublicRoute = publicRoutes.includes(pathname);
 
   const isAuthRoute = () => {
-    return authRoutes.some((path) => request.nextUrl.pathname.startsWith(path));
+    return authRoutes.some((path) => pathname.startsWith(path));
   };
 
   if (isApiAuth) {
