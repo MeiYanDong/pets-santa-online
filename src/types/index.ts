@@ -10,9 +10,13 @@ export interface User {
 export interface Creation {
   id: string;
   originalImage: string;
-  generatedImage: string;
+  generatedImage: string | null;
   style: string;
+  styleId?: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
   date: string;
+  createdAt?: string;
+  errorMessage?: string;
 }
 
 export interface StyleTemplate {

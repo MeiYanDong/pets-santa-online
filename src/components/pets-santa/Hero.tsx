@@ -3,16 +3,16 @@
 import React, { useState, useRef } from 'react';
 import { STYLE_TEMPLATES } from '@/constants';
 import { StyleTemplate, User } from '@/types';
-import { generatePetPortrait } from '@/services/gemini-service';
-import { uploadFile, uploadBase64Image } from '@/services/blob-service';
+import { uploadFile } from '@/services/blob-service';
 
 interface HeroProps {
-  onGenerated: (original: string, generated: string, style: string) => void;
+  onGenerated: () => void;
   user: User | null;
   onLogin: () => void;
+  onNavigateToPricing?: () => void;
 }
 
-const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
+const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin, onNavigateToPricing }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [originalBlobUrl, setOriginalBlobUrl] = useState<string | null>(null);
@@ -61,36 +61,58 @@ const Hero: React.FC<HeroProps> = ({ onGenerated, user, onLogin }) => {
       return;
     }
 
+    // Require login before generating
+    if (!user) {
+      onLogin();
+      return;
+    }
+
+    // Require image to be uploaded to blob storage
+    if (!originalBlobUrl) {
+      setError("Please wait for image upload to complete.");
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setResult(null);
     setResultBlobUrl(null);
 
     try {
-      const generatedBase64 = await generatePetPortrait(preview, selectedStyle.prompt);
-      if (generatedBase64) {
-        setResult(generatedBase64);
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalImageUrl: originalBlobUrl,
+          prompt: selectedStyle.prompt,
+          styleId: selectedStyle.id,
+          styleLabel: selectedStyle.label,
+        }),
+      });
 
-        // Upload generated image to Vercel Blob
-        try {
-          const generatedBlobUrl = await uploadBase64Image(generatedBase64, 'generated');
-          setResultBlobUrl(generatedBlobUrl);
-          // Use Blob URLs for storage if available, fallback to base64
-          onGenerated(
-            originalBlobUrl || preview,
-            generatedBlobUrl,
-            selectedStyle.label
-          );
-        } catch (uploadErr) {
-          console.error('Failed to upload generated image:', uploadErr);
-          // Fallback to base64 if upload fails
-          onGenerated(originalBlobUrl || preview, generatedBase64, selectedStyle.label);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.code === 'INSUFFICIENT_CREDITS') {
+          setError("Insufficient credits. Please purchase more credits to continue.");
+          if (onNavigateToPricing) {
+            onNavigateToPricing();
+          }
+          return;
         }
+        throw new Error(data.error || 'Generation failed');
+      }
+
+      if (data.status === 'completed' && data.generatedImageUrl) {
+        setResult(data.generatedImageUrl);
+        setResultBlobUrl(data.generatedImageUrl);
+        onGenerated();
       } else {
         setError("Generation failed. Please try again.");
       }
-    } catch (err: any) {
-      setError("Something went wrong. Please check your API key or connection.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }

@@ -171,11 +171,16 @@ const PricingPage = ({ onPlanSelect, isLoading }: { onPlanSelect: (plan: string)
   );
 };
 
-const MyCreationsPage = ({ creations }: { creations: Creation[] }) => (
+const MyCreationsPage = ({ creations, isLoading }: { creations: Creation[]; isLoading: boolean }) => (
   <div className="py-24 min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <h1 className="text-5xl font-bold text-slate-900 dark:text-white mb-16 festive-font">My Creations</h1>
-      {creations.length === 0 ? (
+      {isLoading ? (
+        <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-32 text-center border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="text-8xl mb-8 animate-bounce">🐾</div>
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Loading...</h2>
+        </div>
+      ) : creations.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-32 text-center border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="text-8xl mb-8 opacity-20">📸</div>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">No creations yet</h2>
@@ -186,19 +191,48 @@ const MyCreationsPage = ({ creations }: { creations: Creation[] }) => (
           {creations.map((c) => (
             <div key={c.id} className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-800 group hover:shadow-xl transition-all">
               <div className="relative aspect-square overflow-hidden bg-slate-50 dark:bg-slate-800">
-                <img src={c.generatedImage} alt={c.style} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                {c.status === 'processing' || c.status === 'pending' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <svg className="animate-spin h-12 w-12 text-red-500 mb-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Generating...</span>
+                  </div>
+                ) : c.status === 'failed' || c.status === 'refunded' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-4">
+                    <div className="text-4xl mb-4">❌</div>
+                    <span className="text-sm text-red-500 dark:text-red-400 text-center">
+                      {c.status === 'refunded' ? 'Failed - Credits Refunded' : 'Failed'}
+                    </span>
+                    {c.errorMessage && (
+                      <span className="text-xs text-slate-400 mt-2 text-center">{c.errorMessage}</span>
+                    )}
+                  </div>
+                ) : c.generatedImage ? (
+                  <img src={c.generatedImage} alt={c.style} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <span className="text-slate-400">No image</span>
+                  </div>
+                )}
                 <div className="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 px-3 py-1 rounded-xl text-[10px] font-bold text-red-600 dark:text-red-400 uppercase shadow-md tracking-widest">{c.style}</div>
+                {(c.status === 'processing' || c.status === 'pending') && (
+                  <div className="absolute top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-xl text-[10px] font-bold uppercase shadow-md tracking-widest">Processing</div>
+                )}
               </div>
               <div className="p-6 flex items-center justify-between bg-white dark:bg-slate-900 border-t border-slate-50 dark:border-slate-800">
                 <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">{c.date}</span>
-                <button
-                  onClick={() => { const link = document.createElement('a'); link.href = c.generatedImage; link.download = `pet-${c.id}.png`; link.click(); }}
-                  className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                </button>
+                {c.generatedImage && c.status === 'completed' && (
+                  <button
+                    onClick={() => { const link = document.createElement('a'); link.href = c.generatedImage!; link.download = `pet-${c.id}.png`; link.click(); }}
+                    className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -212,6 +246,7 @@ const PetsSantaApp: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [creations, setCreations] = useState<Creation[]>([]);
+  const [isCreationsLoading, setIsCreationsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
@@ -226,6 +261,24 @@ const PetsSantaApp: React.FC = () => {
     plan: 'free'
   } : null;
 
+  // Fetch creations from API
+  const fetchCreations = async () => {
+    if (!session?.user) return;
+
+    setIsCreationsLoading(true);
+    try {
+      const response = await fetch('/api/creations');
+      if (response.ok) {
+        const data = await response.json();
+        setCreations(data.creations);
+      }
+    } catch (error) {
+      console.error('Failed to fetch creations:', error);
+    } finally {
+      setIsCreationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     // Initialize dark mode from localStorage or system preference
     const savedTheme = localStorage.getItem('theme');
@@ -233,10 +286,26 @@ const PetsSantaApp: React.FC = () => {
     setIsDarkMode(savedTheme === 'dark' || (!savedTheme && prefersDark));
   }, []);
 
+  // Fetch creations when user logs in or navigates to my-creations page
   useEffect(() => {
-    const saved = localStorage.getItem('pets_santa_creations');
-    if (saved) setCreations(JSON.parse(saved));
-  }, []);
+    if (session?.user && currentPage === 'my-creations') {
+      fetchCreations();
+    }
+  }, [session?.user, currentPage]);
+
+  // Poll for in-progress tasks
+  useEffect(() => {
+    if (currentPage !== 'my-creations') return;
+
+    const hasProcessing = creations.some(c => c.status === 'processing' || c.status === 'pending');
+    if (!hasProcessing) return;
+
+    const interval = setInterval(() => {
+      fetchCreations();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [currentPage, creations]);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -255,11 +324,10 @@ const PetsSantaApp: React.FC = () => {
     setCurrentPage('home');
   };
 
-  const handleNewCreation = (original: string, generated: string, style: string) => {
-    const newCreation: Creation = { id: Math.random().toString(36).substr(2, 9), originalImage: original, generatedImage: generated, style: style, date: new Date().toLocaleDateString() };
-    const updated = [newCreation, ...creations];
-    setCreations(updated);
-    localStorage.setItem('pets_santa_creations', JSON.stringify(updated));
+  const handleNewCreation = () => {
+    // Refresh creations from the database
+    // The creation is already saved by the API
+    fetchCreations();
   };
 
   const handleCheckout = async () => {
@@ -313,7 +381,12 @@ const PetsSantaApp: React.FC = () => {
     >
       {currentPage === 'home' && (
         <>
-          <Hero onGenerated={handleNewCreation} user={mappedUser} onLogin={() => setIsAuthModalOpen(true)} />
+          <Hero
+            onGenerated={handleNewCreation}
+            user={mappedUser}
+            onLogin={() => setIsAuthModalOpen(true)}
+            onNavigateToPricing={() => setCurrentPage('pricing')}
+          />
           <SEOSection />
           <Features />
           <AboutSection />
@@ -323,7 +396,7 @@ const PetsSantaApp: React.FC = () => {
         </>
       )}
       {currentPage === 'pricing' && <PricingPage onPlanSelect={handleCheckout} isLoading={isCheckoutLoading} />}
-      {currentPage === 'my-creations' && <MyCreationsPage creations={creations} />}
+      {currentPage === 'my-creations' && <MyCreationsPage creations={creations} isLoading={isCreationsLoading} />}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </Layout>
   );
